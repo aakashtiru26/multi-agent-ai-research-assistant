@@ -62,7 +62,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.debug else [],
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -70,9 +70,14 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestLoggingMiddleware)
     app.include_router(api_router)
 
-    frontend_dir = Path(__file__).resolve().parent.parent / "frontend"
-    if frontend_dir.exists():
-        app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
+    # Try both possible frontend locations (local dev vs Docker /app)
+    for candidate in [
+        Path(__file__).resolve().parent.parent / "frontend",
+        Path("/app/frontend"),
+    ]:
+        if candidate.exists():
+            app.mount("/", StaticFiles(directory=str(candidate), html=True), name="frontend")
+            break
 
     return app
 
