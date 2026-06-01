@@ -25,8 +25,8 @@ class Settings(BaseSettings):
 
     # Groq settings
     groq_api_key: SecretStr = Field(default=SecretStr(""), alias="GROQ_API_KEY")
-    groq_model: str = Field(default="llama3-8b-8192", alias="GROQ_MODEL")
-    groq_model_fast: str = Field(default="llama3-8b-8192", alias="GROQ_MODEL_FAST")
+    groq_model: str = Field(default="llama-3.3-70b-versatile", alias="GROQ_MODEL")
+    groq_model_fast: str = Field(default="llama-3.1-8b-instant", alias="GROQ_MODEL_FAST")
 
     # Ollama settings (local dev fallback)
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")

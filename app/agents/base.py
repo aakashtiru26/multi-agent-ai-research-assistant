@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from abc import ABC, abstractmethod
@@ -13,6 +14,10 @@ from app.models.schemas import AgentStage, AgentType, ProgressEvent
 logger = get_logger(__name__)
 
 EventCallback = Callable[[ProgressEvent], Awaitable[None]]
+
+# Groq free tier TPM is low — wait and retry on 429
+_RATE_LIMIT_RETRIES = 4
+_RATE_LIMIT_BASE_WAIT = 25  # seconds
 
 
 class BaseAgent(ABC):
@@ -34,11 +39,28 @@ class BaseAgent(ABC):
             SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt),
         ]
-        response = await self._llm.ainvoke(messages)
-        content = response.content
-        if isinstance(content, str):
-            return content.strip()
-        return str(content).strip()
+        last_exc: Exception | None = None
+        for attempt in range(_RATE_LIMIT_RETRIES):
+            try:
+                response = await self._llm.ainvoke(messages)
+                content = response.content
+                return content.strip() if isinstance(content, str) else str(content).strip()
+            except Exception as exc:
+                err = str(exc)
+                # Handle Groq / OpenAI rate limit (429)
+                if "429" in err or "rate_limit" in err.lower() or "rate limit" in err.lower():
+                    wait = _RATE_LIMIT_BASE_WAIT * (attempt + 1)
+                    logger.warning(
+                        "Rate limit hit (attempt %d/%d) — waiting %ds before retry",
+                        attempt + 1, _RATE_LIMIT_RETRIES, wait,
+                    )
+                    await asyncio.sleep(wait)
+                    last_exc = exc
+                else:
+                    raise
+        raise RuntimeError(
+            f"Rate limit exceeded after {_RATE_LIMIT_RETRIES} retries"
+        ) from last_exc
 
     async def _emit(
         self,
