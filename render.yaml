@@ -1,0 +1,33 @@
+services:
+  - type: web
+    name: multiairesearch
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: LLM_BACKEND
+        value: groq
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: TURBO_PIPELINE
+        value: "false"
+      - key: USE_LLM_PLANNER
+        value: "true"
+      - key: MAX_SUBTASKS
+        value: "4"
+      - key: MAX_CONCURRENT_RESEARCH
+        value: "3"
+      - key: REQUIRE_WEB_SEARCH
+        value: "true"
+      - key: ENABLE_VERIFIER
+        value: "true"
+      - key: REDIS_ENABLED
+        value: "false"
+      - key: POSTGRES_ENABLED
+        value: "false"
+      # Set these as secret env vars in the Render dashboard:
+      # API_KEY, GROQ_API_KEY
